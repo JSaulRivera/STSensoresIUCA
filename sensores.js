@@ -412,7 +412,7 @@ function mostrarDatosSensor(atributos) {
         window.open("https://smart-twins.sigsa.info/portal/apps/dashboards/c549225088234bfda2955f56f9677ad0");
       }
       else if(atributos.nombre=="Camara DH-ECA2A1400-HN"){
-        //window.open("https://smart-twins.sigsa.info/portal/apps/dashboards/c549225088234bfda2955f56f9677ad0");
+        window.open("https://smart-twins.sigsa.info/portal/apps/dashboards/2b23130b44d149d7af04222fd5d947fa");
       }
       else{
         window.open(`datos.html?atributos=${atributosCodificados}`);
