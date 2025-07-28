@@ -1,0 +1,93 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Orbitron', sans-serif;
+  background-color: #001f33;
+  color: #00ffff;
+}
+
+#container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#sidebar {
+  width: 250px;
+  background-color: #002944;
+  padding: 20px;
+  box-shadow: 0 0 15px #00ffff88;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+}
+
+#sidebar h2 {
+  font-size: 20px;
+  color: #00ffff;
+  border-bottom: 2px solid #00ffff66;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 5px #00ffff99;
+}
+
+#sensorList {
+  width: 100%;
+  height: 100%;
+  background-color: #001d2e;
+  border: 1px solid #00ffff55;
+  color: #00ffff;
+  font-size: 14px;
+  padding: 5px;
+  /* overflow: hidden; */
+}
+
+#sensorList option {
+  padding: 10px;
+  border-bottom: 1px solid #00ffff33;
+}
+
+#sensorList option:hover,
+#sensorList option:focus,
+#sensorList option:checked {
+  background-color: #00ffff22;
+  color: #ffffff;
+}
+
+#mapDiv {
+  flex-grow: 1;
+  height: 100%;
+}
+.sensor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.sensor-item {
+  background-color: #001d2e;
+  border: 1px solid #00ffff55;
+  color: #00ffff;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 5px #00ffff22;
+}
+
+.sensor-item:hover,
+.sensor-item:focus {
+  background-color: #00ffff22;
+  color: #ffffff;
+  box-shadow: 0 0 10px #00ffff88;
+}
+.sensor-item.selected {
+  background-color: #00ffff55;
+  color: #001f33;
+  font-weight: bold;
+  box-shadow: 0 0 12px #00ffffcc;
+}

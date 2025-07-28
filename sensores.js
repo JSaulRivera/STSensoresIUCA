@@ -1,0 +1,430 @@
+let view;
+let sensorValues = new Map();
+let datosSensores, sensores3d;
+
+require([
+  "esri/Map",
+  "esri/views/SceneView",
+  "esri/layers/SceneLayer",
+  "esri/layers/FeatureLayer",
+  "esri/layers/GraphicsLayer",
+  "esri/Graphic",
+  "esri/widgets/LayerList",
+  "esri/layers/GroupLayer",
+  "esri/symbols/PointSymbol3D",
+  "esri/symbols/ObjectSymbol3DLayer",
+], function (
+  Map,
+  SceneView,
+  SceneLayer,
+  FeatureLayer,
+  GraphicsLayer,
+  Graphic,
+  LayerList,
+  GroupLayer,
+  PointSymbol3D,
+  ObjectSymbol3DLayer
+) {
+  const etiquetasLayer = new GraphicsLayer({
+    title: "Información de sensores",
+    listMode: "show",
+  });
+  const efectoAnilloLayer = new GraphicsLayer({ 
+    listMode: "hide" 
+  }); 
+
+  const map = new Map({
+    basemap: "streets-night-vector",
+    layers: [etiquetasLayer, efectoAnilloLayer],
+  });
+
+  view = new SceneView({
+    container: "mapDiv",
+    map: map,
+    center: [-98.413904, 20.063305],
+    zoom: 20,
+  });
+
+  sensores3d = new FeatureLayer({
+    url: "https://smart-twins.sigsa.info/server/rest/services/Hosted/UbicacionSensores_WSL1/FeatureServer/1",
+    title: "Sensores2D",
+    outFields: "*",
+  });
+
+   const glbLayer = new GraphicsLayer({title: "modelos Sensores",
+    listMode: "hide"});
+
+  const sceneLayer = new SceneLayer({
+    url: "https://smart-twins.sigsa.info/server/rest/services/Hosted/UbicacionSensores_WSL1/SceneServer",
+    
+    title: "Ubicacion Sensores",
+    listMode: "hide",
+  });
+
+
+
+  datosSensores = new FeatureLayer({
+    url: "https://smart-twins.sigsa.info/server/rest/services/Hosted/DatosSensores_WFL1/FeatureServer",
+    title: "Datos de Sensores",
+    listMode: "hide",
+  });
+
+  const grupoIuca = new GroupLayer({
+    title: "IUCA",
+    listMode: "show",
+    opacity: 0.2,
+    visibilityMode: "independent",
+    layers: [],
+  });
+
+  for (let i = 0; i <= 36; i++) {
+    const url = `https://smart-twins.sigsa.info/server/rest/services/Hosted/Iuca_Wirepass_WSL${i}/SceneServer`;
+
+
+    const capaIuca = new SceneLayer({
+      url: url,
+      listMode: "show",
+      
+    });
+
+    capaIuca.popupEnabled = false;
+    capaIuca.isInteractive = false;
+    grupoIuca.add(capaIuca);
+  }
+
+  map.addMany([grupoIuca, glbLayer]);
+
+
+
+  const layerList = new LayerList({ view });
+  view.ui.add(layerList, "top-right");
+
+      sceneLayer.load().then(() => {
+        const query = sceneLayer.createQuery();
+        query.where = "1=1";
+        query.returnGeometry = true;
+        query.outFields = ["*"];
+
+        return sceneLayer.queryFeatures(query);
+      }).then(featureSet => {
+        
+        featureSet.features.forEach(feature => {
+          const pt = feature.geometry;
+          const height = pt.z ?? 0;
+          const tipoSensor = feature.attributes.datos ?? "default";
+
+          const symbol = new PointSymbol3D({
+            symbolLayers: [
+              new ObjectSymbol3DLayer({
+                resource: { href: `/modelosSensores/${feature.attributes.modelo}.glb` },
+                height: feature.attributes.escala,
+                anchor: "relative",
+                heading: feature.attributes.inclinacion,
+                tilt: feature.attributes.direccion
+              })
+            ]
+          });
+
+          
+          const graphic = new Graphic({
+            geometry: pt,
+            symbol: symbol,
+            attributes: feature.attributes
+          });
+
+          glbLayer.add(graphic);
+        });
+      }).catch(console.error);
+
+  function actualizarDatosSensores() {
+    datosSensores
+      .queryFeatures({
+        where: "1=1",
+        outFields: ["*"],
+        orderByFields: ["fecha desc"],
+        returnGeometry: true,
+      })
+      .then((results) => {
+        sensorValues.clear();
+        const feature = results.features[0];
+
+        for (const [key, value] of Object.entries(feature.attributes)) {
+          sensorValues.set(key, value);
+        }
+
+        actualizarEtiquetasSensores();
+      });
+  }
+
+  function actualizarEtiquetasSensores() {
+    etiquetasLayer.removeAll();
+
+    sceneLayer
+      .load()
+      .then(() => {
+        const query = sceneLayer.createQuery();
+        query.where = "1=1";
+        query.returnGeometry = true;
+        query.outFields = ["*"];
+
+        return sceneLayer.queryFeatures(query);
+      })
+      .then((featureSet) => {
+        featureSet.features.forEach((feature) => {
+          const pt = feature.geometry;
+          pt.z=pt.z+0.5;
+
+          const nombre = feature.attributes.nombre;
+          const datosKey = feature.attributes.datos;
+          if (!datosKey) return;
+
+          const campos = datosKey.split(",");
+          let textoValores = "";
+
+          campos.forEach((campo) => {
+            const valor = sensorValues.get(campo);
+            textoValores += `\n ${campo}: ${valor ?? " "}`;
+          });
+
+          const fecha = formatearFecha(sensorValues.get("fecha"));
+          const texto = `${nombre}${textoValores}\n Fecha: ${fecha}`;
+
+          const etiqueta = new Graphic({
+            geometry: pt,
+            symbol: {
+              type: "text",
+              color: "#00ffff",
+              text: texto,
+              font: {
+                size: 9,
+                family: "Segoe UI",
+                weight: "bold",
+              },
+              haloColor: "#001f33",
+              haloSize: "2px",
+            },
+          });
+
+          etiquetasLayer.add(etiqueta);
+        });
+      })
+      .catch(console.error);
+  }
+
+  function formatearFecha(timestamp) {
+    const fecha = new Date(Number(timestamp));
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, "0");
+    const dd = String(fecha.getDate()).padStart(2, "0");
+    const hh = String(fecha.getHours()).padStart(2, "0");
+    const min = String(fecha.getMinutes()).padStart(2, "0");
+    const ss = String(fecha.getSeconds()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+  }
+
+  function cargarListaSensores() {
+    sceneLayer
+      .load()
+      .then(() => {
+        const query = sceneLayer.createQuery();
+        query.where = "1=1";
+        query.returnGeometry = true;
+        query.outFields = ["*"];
+
+        return sceneLayer.queryFeatures(query);
+      })
+      .then((featureSet) => {
+        const lista = document.getElementById("sensorList");
+        lista.innerHTML = "";
+        const nombresUnicos = new Set();
+        featureSet.features.forEach((feature) => {
+          const pt = feature.geometry;
+          const height = pt.z ?? 0;
+          const nombre = feature.attributes.nombre;
+          if (!nombresUnicos.has(nombre)) {
+            nombresUnicos.add(nombre);
+
+            const div = document.createElement("div");
+            div.className = "sensor-item";
+            div.textContent = nombre;
+            div.dataset.nombre = nombre;
+
+            div.addEventListener("click", () => {
+              document
+                .querySelectorAll(".sensor-item")
+                .forEach((el) => el.classList.remove("selected"));
+
+              div.classList.add("selected");
+
+              hacerZoomASensor(nombre);
+            });
+            lista.appendChild(div);
+          }
+        });
+      })
+      .catch(console.error);
+  }
+
+  function hacerZoomASensor(nombre) {
+    sceneLayer
+      .load()
+      .then(() => {
+        const query = sceneLayer.createQuery();
+        query.where = `nombre='${nombre}'`;
+        query.returnGeometry = true;
+        query.outFields = ["*"];
+        return sceneLayer.queryFeatures(query);
+      })
+      .then((featureSet) => {
+        if (featureSet.features.length > 0) {
+          const feature = featureSet.features[0];
+          const punto = feature.geometry;
+
+          view.goTo({
+            target: punto,
+            zoom: 30,
+            tilt: feature.attributes.tiltcamara,
+            heading: feature.attributes.headingcamara,
+          });
+
+          animarAnillo(punto);
+        }
+      })
+      .catch(console.error);
+  }
+
+  function animarAnillo(punto) {
+    efectoAnilloLayer.removeAll();
+
+    const repeticiones = 3;
+    const duracionTotal = 2000; 
+    const pasosPorCiclo = 15;
+    const duracionCiclo = duracionTotal / repeticiones;
+    const intervalo = duracionCiclo / pasosPorCiclo;
+    const incremento = 4;
+
+    let ciclo = 0;
+    let paso = 0;
+    let radio = 10;
+
+    const animacion = setInterval(() => {
+      efectoAnilloLayer.removeAll();
+
+      const grafico = new Graphic({
+        geometry: punto,
+        symbol: {
+          type: "simple-marker",
+          style: "circle",
+          size: radio,
+          color: [0, 255, 255, 0], 
+          outline: {
+            color: [0, 255, 255, 0.6],
+            width: 2,
+          },
+        },
+      });
+
+      efectoAnilloLayer.add(grafico);
+
+      radio += incremento;
+      paso++;
+
+      if (paso >= pasosPorCiclo) {
+        ciclo++;
+        paso = 0;
+        radio = 10;
+      }
+
+      if (ciclo >= repeticiones) {
+        clearInterval(animacion);
+        efectoAnilloLayer.removeAll();
+      }
+    }, intervalo);
+  }
+
+  setInterval(() => {
+    actualizarDatosSensores();
+  }, 30000);
+
+  view.when(() => {
+    actualizarDatosSensores();
+    cargarListaSensores();
+
+  view.on("click", (event) => {
+  view.hitTest(event).then((response) => {
+    const result = response.results.find((res) => 
+      res.graphic.layer === sensores3d || res.graphic.layer === glbLayer
+    );
+
+    if (!result) return;
+
+    const graphic = result.graphic;
+    const atributos = { ...graphic.attributes };
+
+    
+    if (result.graphic.layer === glbLayer) {
+      const nombre = atributos.nombre;
+      if (!nombre) return;
+
+      sensores3d.queryFeatures({
+        where: `nombre='${nombre}'`,
+        outFields: ["*"],
+        returnGeometry: false,
+      }).then((queryResult) => {
+        const sensor = queryResult.features[0];
+        if (!sensor) return;
+
+        mostrarDatosSensor(sensor.attributes);
+      });
+
+    } else {
+
+      mostrarDatosSensor(atributos);
+    }
+  });
+});
+
+function mostrarDatosSensor(atributos) {
+  const datosKey = atributos.datos;
+  const campos = datosKey?.split(",") ?? [];
+
+  datosSensores
+    .queryFeatures({
+      where: "1=1",
+      outFields: ["*"],
+      orderByFields: ["fecha desc"],
+      returnGeometry: false,
+      num: 1,
+    })
+    .then((result) => {
+      const registro = result.features?.[0]?.attributes;
+      if (registro) {
+        atributos.fecha = registro.fecha;
+        campos.forEach((campo) => {
+          atributos[campo] = registro[campo];
+        });
+      }
+
+      const atributosCodificados = encodeURIComponent(
+        JSON.stringify(atributos)
+      );
+      if(atributos.nombre=="Camara DH-IPC-HFW2431DG-4G-SP-LA-B"){
+        window.open("https://smart-twins.sigsa.info/portal/apps/dashboards/c549225088234bfda2955f56f9677ad0");
+      }
+      else if(atributos.nombre=="Camara DH-ECA2A1400-HN"){
+        //window.open("https://smart-twins.sigsa.info/portal/apps/dashboards/c549225088234bfda2955f56f9677ad0");
+      }
+      else{
+        window.open(`datos.html?atributos=${atributosCodificados}`);
+      }
+    });
+}
+
+    document
+      .getElementById("sensorList")
+      .addEventListener("change", function () {
+        const nombreSeleccionado = this.value;
+        hacerZoomASensor(nombreSeleccionado);
+      });
+  });
+});
