@@ -46,7 +46,7 @@ require([
   });
 
   sensores3d = new FeatureLayer({
-    url: "https://smart-twins.sigsa.info/server/rest/services/Hosted/UbicacionSensores_WSL1/FeatureServer/1",
+    url: urlSensores3D,
     title: "Sensores2D",
     outFields: "*",
   });
@@ -55,7 +55,7 @@ require([
     listMode: "hide"});
 
   const sceneLayer = new SceneLayer({
-    url: "https://smart-twins.sigsa.info/server/rest/services/Hosted/UbicacionSensores_WSL1/SceneServer",
+    url: urlSceneLayer,
     
     title: "Ubicacion Sensores",
     listMode: "hide",
@@ -64,7 +64,7 @@ require([
 
 
   datosSensores = new FeatureLayer({
-    url: "https://smart-twins.sigsa.info/server/rest/services/Hosted/DatosSensores_WFL1/FeatureServer",
+    url: urlDatosSensores,
     title: "Datos de Sensores",
     listMode: "hide",
   });
@@ -77,20 +77,16 @@ require([
     layers: [],
   });
 
-  for (let i = 0; i <= 36; i++) {
-    const url = `https://smart-twins.sigsa.info/server/rest/services/Hosted/Iuca_Wirepass_WSL${i}/SceneServer`;
-
-
+  ulrModelo.forEach (url=>{
     const capaIuca = new SceneLayer({
       url: url,
-      listMode: "show",
-      
+      listMode: "show",  
     });
 
     capaIuca.popupEnabled = false;
     capaIuca.isInteractive = false;
     grupoIuca.add(capaIuca);
-  }
+  })
 
   map.addMany([grupoIuca, glbLayer]);
 
@@ -349,7 +345,7 @@ require([
   view.when(() => {
     actualizarDatosSensores();
     cargarListaSensores();
-
+  
   view.on("click", (event) => {
   view.hitTest(event).then((response) => {
     const result = response.results.find((res) => 
@@ -409,10 +405,10 @@ function mostrarDatosSensor(atributos) {
         JSON.stringify(atributos)
       );
       if(atributos.nombre=="Camara DH-IPC-HFW2431DG-4G-SP-LA-B"){
-        window.open("https://smart-twins.sigsa.info/portal/apps/dashboards/c549225088234bfda2955f56f9677ad0");
+        window.open(dashboardspersonas);
       }
       else if(atributos.nombre=="Camara DH-ECA2A1400-HN"){
-        window.open("https://smart-twins.sigsa.info/portal/apps/dashboards/497495f3eb9f45308d0a2fca68dfa657");
+        window.open(dashboardsvehiculos);
       }
       else{
         window.open(`datos.html?atributos=${atributosCodificados}`);

@@ -12,7 +12,7 @@ let datosLayer;
 
 function initApp(FeatureLayer) {
   datosLayer = new FeatureLayer({
-    url: "https://smart-twins.sigsa.info/server/rest/services/Hosted/DatosSensores_WFL1/FeatureServer"
+    url: urlDatosSensores
   });
 
   getInformation();
