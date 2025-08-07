@@ -1,22 +1,30 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>Sensores IUCA</title>
   <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/dark/main.css" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
-<script src="init.js"></script>
+  <script src="init.js"></script>
   <link rel="stylesheet" href="style.css" />
   <script src="https://js.arcgis.com/4.29/"></script>
 </head>
+
 <body>
   <div id="container">
     <div id="sidebar">
       <h2>Lista de Sensores</h2>
+      <select id="filtroSensores">
+        <option value="todos">Todos</option>
+        <option value="arcgis">Sensores ArcGIS</option>
+        <option value="velavu">Sensores Velavu</option>
+      </select>
       <div id="sensorList" class="sensor-list"></div>
     </div>
     <div id="mapDiv"></div>
   </div>
   <script src="sensores.js"></script>
 </body>
+
 </html>
