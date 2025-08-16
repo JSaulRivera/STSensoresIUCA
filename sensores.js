@@ -18,12 +18,12 @@ require([
     title: "Información de sensores",
     listMode: "show",
   });
-  efectoAnilloLayer = new GraphicsLayer({
+  efectocirculoLayer = new GraphicsLayer({
     listMode: "hide"
   });
   const map = new Map({
     basemap: "streets-night-vector",
-    layers: [etiquetasLayer, efectoAnilloLayer],
+    layers: [efectocirculoLayer],
   });
   view = new SceneView({
     container: "mapDiv",
@@ -74,6 +74,7 @@ require([
   })
 
   map.addMany([grupoIuca, glbLayer, glbVelavuLayer]);
+  map.add(etiquetasLayer);
 });
 
 
@@ -86,7 +87,7 @@ require([
   "esri/symbols/ObjectSymbol3DLayer",
 ], function (SceneView, Graphic, LayerList, PointSymbol3D, ObjectSymbol3DLayer) {
 
-  const layerList = new LayerList({ view });
+  layerList = new LayerList({ view });
   view.ui.add(layerList, "top-right");
 
   sceneLayer.load().then(() => {
@@ -123,67 +124,68 @@ require([
     });
   }).catch(console.error);
 
-  getDataApiVelavu('devices').then(devicesVelavu => {
-    sensoresVelavu = devicesVelavu.filter(itemVelavu => itemVelavu.location && itemVelavu.location.coordinates).map(itemVelavu => {
-      const namevelavu = itemVelavu.asset?.name === undefined
-        ? `${itemVelavu.model}_${itemVelavu.id}`
-        : `${itemVelavu.model}_${itemVelavu.id}_${itemVelavu.asset?.name}`;
-      return {
-        nombre: namevelavu,
-        categoria: "velavu",
-        data: itemVelavu
-      };
-    });
-
-    sensoresVelavu.forEach(sensor => {
-      const coords = sensor.data?.location?.coordinates;
-      const modelo = sensor.data.model;
-      const escala = 0.05;
-      const heading = 0;
-      const tilt = -45;
-      // console.log(sensor)
-      if (!coords || !modelo) return;
-      const [lon, lat] = coords;
-      const pt = {
-        type: "point",
-        latitude: lat,
-        longitude: lon,
-        z: 5
-      };
-      const symbol = new PointSymbol3D({
-        symbolLayers: [
-          new ObjectSymbol3DLayer({
-            resource: { href: `/modelosSensores/${modelo}.glb` },
-            height: escala,
-            anchor: "relative",
-            heading: heading,
-            tilt: tilt
-          })
-        ]
-      });
-      const graphic = new Graphic({
-        geometry: pt,
-        symbol: symbol,
-        attributes: {
-          nombre: sensor.nombre,
-          tipo: "velavu",
-          ...sensor.data
-        }
-      });
-
-      glbVelavuLayer.add(graphic);
-    });
-    cargarListaSensores(); // Después de tener sensores externos
-  });
-
-
   setInterval(() => {
     actualizarDatosSensores();
+
   }, 30000);
 
   view.when(() => {
     actualizarDatosSensores();
-    cargarListaSensores();
+
+    getDataApiVelavu('devices').then(devicesVelavu => {
+      sensoresVelavu = devicesVelavu.filter(itemVelavu => itemVelavu.location && itemVelavu.location.coordinates).map(itemVelavu => {
+        const namevelavu = itemVelavu.asset?.name === undefined
+          ? `${itemVelavu.model}_${itemVelavu.id}`
+          : `${itemVelavu.model}_${itemVelavu.id}_${itemVelavu.asset?.name}`;
+        return {
+          nombre: namevelavu,
+          categoria: "velavu",
+          data: itemVelavu
+        };
+      });
+
+      sensoresVelavu.forEach(sensor => {
+        const coords = sensor.data?.location?.coordinates;
+        const modelo = sensor.data.model;
+        const escala = 0.05;
+        const heading = 0;
+        const tilt = -45;
+        // console.log(sensor)
+        if (!coords || !modelo) return;
+        const [lon, lat] = coords;
+        const pt = {
+          type: "point",
+          latitude: lat,
+          longitude: lon,
+          z: 5
+        };
+        console.log(modelo)
+        const symbol = new PointSymbol3D({
+          symbolLayers: [
+            new ObjectSymbol3DLayer({
+              resource: { href: `/modelosSensores/${modelo}.glb` },
+              height: escala,
+              anchor: "relative",
+              heading: heading,
+              tilt: tilt
+            })
+          ]
+        });
+        const graphic = new Graphic({
+          geometry: pt,
+          symbol: symbol,
+          attributes: {
+            nombre: sensor.nombre,
+            tipo: "velavu",
+            ...sensor.data
+          }
+        });
+
+        glbVelavuLayer.add(graphic);
+      });
+      cargarListaSensores(); // Después de tener sensores externos
+      
+    });
 
 
     view.on("click", (event) => {
@@ -211,6 +213,7 @@ require([
             if (!sensor) return;
 
             mostrarDatosSensor(sensor.attributes);
+            
           });
 
         } else {
@@ -226,9 +229,11 @@ require([
     });
 
     document.getElementById("filtroSensores").addEventListener("change", function () {
-      const filtro = this.value;
+      filtro = this.value;
       cargarListaSensores(filtro);
+      aplicarFiltroEtiquetas(filtro);
     });
+
 
   });
 });
@@ -238,7 +243,7 @@ function cargarListaSensores(filtro = "todos") {
   listaSensores.innerHTML = "";
   const nombresUnicos = new Set();
 
-  if (filtro === "todos" || filtro === "arcgis") {
+  if (filtro === "todos" || filtro === "ambientales") {
     sceneLayer
       .load()
       .then(() => sceneLayer.queryFeatures({
@@ -251,7 +256,7 @@ function cargarListaSensores(filtro = "todos") {
           const nombre = feature.attributes.nombre;
           if (!nombresUnicos.has(nombre)) {
             nombresUnicos.add(nombre);
-            agregarSensorALista(nombre, "arcgis");
+            agregarSensorALista(nombre, "ambientales");
           }
         });
       });
@@ -281,13 +286,109 @@ function agregarSensorALista(nombre, tipo) {
 
     div.classList.add("selected");
 
-      hacerZoomASensor(nombre, tipo);
-  
+    hacerZoomASensor(nombre, tipo);
+
   });
 
   listaSensores.appendChild(div);
 }
+function hacerZoomASensor(nombre, tipo) {
+  if (tipo === "ambientales") {
+    sceneLayer
+      .load()
+      .then(() => {
+        const query = sceneLayer.createQuery();
+        query.where = `nombre='${nombre}'`;
+        query.returnGeometry = true;
+        query.outFields = ["*"];
+        return sceneLayer.queryFeatures(query);
+      })
+      .then((featureSet) => {
+        if (featureSet.features.length > 0) {
+          const feature = featureSet.features[0];
+          const punto = feature.geometry;
 
+          view.goTo({
+            target: punto,
+            zoom: 30,
+            tilt: feature.attributes.tiltcamara,
+            heading: feature.attributes.headingcamara,
+          });
+
+          animarAnillo(punto);
+        }
+      })
+      .catch(console.error);
+  } else if (tipo === "velavu") {
+    const resultados = glbVelavuLayer.graphics.items.filter(graphic => {
+      return graphic.attributes.nombre && graphic.attributes.nombre.includes(nombre);
+    });
+    const punto = resultados[0].geometry;
+    view.goTo({
+      target: punto,
+      zoom: 35,
+      tilt: 75,
+      heading: 45,
+    }).catch(error => {
+      console.error("Error al hacer zoom:", error);
+    });
+    animarAnillo(punto);
+  }
+
+
+}
+
+function animarAnillo(punto) {
+  require(["esri/Graphic"], function (Graphic) {
+
+    efectocirculoLayer.removeAll();
+
+    const repeticiones = 3;
+    const duracionTotal = 2000;
+    const pasosPorCiclo = 15;
+    const duracionCiclo = duracionTotal / repeticiones;
+    const intervalo = duracionCiclo / pasosPorCiclo;
+    const incremento = 4;
+
+    let ciclo = 0;
+    let paso = 0;
+    let radio = 10;
+
+    const animacion = setInterval(() => {
+      efectocirculoLayer.removeAll();
+
+      const grafico = new Graphic({
+        geometry: punto,
+        symbol: {
+          type: "simple-marker",
+          style: "circle",
+          size: radio,
+          color: [0, 255, 255, 0],
+          outline: {
+            color: [0, 255, 255, 0.6],
+            width: 2,
+          },
+        },
+      });
+
+      efectocirculoLayer.add(grafico);
+
+      radio += incremento;
+      paso++;
+
+      if (paso >= pasosPorCiclo) {
+        ciclo++;
+        paso = 0;
+        radio = 10;
+      }
+
+      if (ciclo >= repeticiones) {
+        clearInterval(animacion);
+        efectocirculoLayer.removeAll();
+      }
+    }, intervalo);
+  });
+}
 
 function mostrarDatosSensor(atributos) {
   const datosKey = atributos.datos;
@@ -347,9 +448,11 @@ function actualizarDatosSensores() {
 
 function actualizarEtiquetasSensores() {
   require(["esri/Graphic"], function (Graphic) {
-
     etiquetasLayer.removeAll();
+    etiquetasArcgis = [];
+    etiquetasVelavu = [];
 
+    // Ambientales
     sceneLayer
       .load()
       .then(() => {
@@ -357,14 +460,12 @@ function actualizarEtiquetasSensores() {
         query.where = "1=1";
         query.returnGeometry = true;
         query.outFields = ["*"];
-
         return sceneLayer.queryFeatures(query);
       })
       .then((featureSet) => {
         featureSet.features.forEach((feature) => {
           const pt = feature.geometry;
-          pt.z = pt.z + 0.5;
-
+          pt.z += 0.2;
           const nombre = feature.attributes.nombre;
           const datosKey = feature.attributes.datos;
           if (!datosKey) return;
@@ -378,7 +479,8 @@ function actualizarEtiquetasSensores() {
           });
 
           const fecha = formatearFecha(sensorValues.get("fecha"));
-          const texto = `${nombre}${textoValores}\n Fecha: ${fecha}`;
+          //const texto = `${nombre}${textoValores}\n Fecha: ${fecha}`;
+          const texto = `${nombre}${textoValores}\n`
 
           const etiqueta = new Graphic({
             geometry: pt,
@@ -396,109 +498,72 @@ function actualizarEtiquetasSensores() {
             },
           });
 
-          etiquetasLayer.add(etiqueta);
+          etiquetasArcgis.push(etiqueta);
         });
+
+        // Ahora procesar etiquetas de Velavu
+        sensoresVelavu.forEach((sensor) => {
+          const coords = sensor.data?.location?.coordinates;
+          if (!coords) return;
+
+          const pt = {
+            type: "point",
+            latitude: coords[1],
+            longitude: coords[0],
+            z: 5.2
+          };
+
+          let textoValores = "";
+
+          for (const [key, value] of Object.entries(sensor.data)) {
+           // console.log(sensor)
+            if (typeof value === "string" || typeof value === "number") {
+              textoValores += `\n ${key}: ${value}`;
+            }
+          }
+
+          const fecha = sensor.data?.updatedAt || "";
+          //const texto = `${sensor.nombre}${textoValores}\n Fecha: ${fecha}`;
+          const texto = `${sensor.nombre}`;
+
+          const etiqueta = new Graphic({
+            geometry: pt,
+            symbol: {
+              type: "text",
+              color: "#00ffff",
+              text: texto,
+              font: {
+                size: 9,
+                family: "Segoe UI",
+                weight: "bold",
+              },
+              haloColor: "#001f33",
+              haloSize: "2px",
+            },
+          });
+
+          etiquetasVelavu.push(etiqueta);
+        });
+
+        aplicarFiltroEtiquetas(filtro);
       })
       .catch(console.error);
   });
-}
-
-
-function hacerZoomASensor(nombre, tipo) {
-   if (tipo === "arcgis") {
-    sceneLayer
-    .load()
-    .then(() => {
-      const query = sceneLayer.createQuery();
-      query.where = `nombre='${nombre}'`;
-      query.returnGeometry = true;
-      query.outFields = ["*"];
-      return sceneLayer.queryFeatures(query);
-    })
-    .then((featureSet) => {
-      if (featureSet.features.length > 0) {
-        const feature = featureSet.features[0];
-        const punto = feature.geometry;
-
-        view.goTo({
-          target: punto,
-          zoom: 30,
-          tilt: feature.attributes.tiltcamara,
-          heading: feature.attributes.headingcamara,
-        });
-
-        animarAnillo(punto);
-      }
-    })
-    .catch(console.error);
-    } else if (tipo === "velavu") {
-     const resultados = glbVelavuLayer.graphics.items.filter(graphic => {
-    return graphic.attributes.nombre && graphic.attributes.nombre.includes(nombre);
-  });
-   const punto = resultados[0].geometry;
-  view.goTo({
-    target: punto,
-    zoom: 35
-  }).catch(error => {
-    console.error("Error al hacer zoom:", error);
-  });
- animarAnillo(punto);
-    }
-
 
 }
 
-function animarAnillo(punto) {
-  require(["esri/Graphic"], function (Graphic) {
+function aplicarFiltroEtiquetas(filtro) {
+  etiquetasLayer.removeAll();
 
-    efectoAnilloLayer.removeAll();
+  if (filtro === "todos" || filtro === "ambientales") {
+    etiquetasArcgis.forEach(etiqueta => etiquetasLayer.add(etiqueta));
+  }
 
-    const repeticiones = 3;
-    const duracionTotal = 2000;
-    const pasosPorCiclo = 15;
-    const duracionCiclo = duracionTotal / repeticiones;
-    const intervalo = duracionCiclo / pasosPorCiclo;
-    const incremento = 4;
-
-    let ciclo = 0;
-    let paso = 0;
-    let radio = 10;
-
-    const animacion = setInterval(() => {
-      efectoAnilloLayer.removeAll();
-
-      const grafico = new Graphic({
-        geometry: punto,
-        symbol: {
-          type: "simple-marker",
-          style: "circle",
-          size: radio,
-          color: [0, 255, 255, 0],
-          outline: {
-            color: [0, 255, 255, 0.6],
-            width: 2,
-          },
-        },
-      });
-
-      efectoAnilloLayer.add(grafico);
-
-      radio += incremento;
-      paso++;
-
-      if (paso >= pasosPorCiclo) {
-        ciclo++;
-        paso = 0;
-        radio = 10;
-      }
-
-      if (ciclo >= repeticiones) {
-        clearInterval(animacion);
-        efectoAnilloLayer.removeAll();
-      }
-    }, intervalo);
-  });
+  if (filtro === "todos" || filtro === "velavu") {
+    etiquetasVelavu.forEach(etiqueta => etiquetasLayer.add(etiqueta));
+  }
 }
+
 
 function formatearFecha(timestamp) {
   const fecha = new Date(Number(timestamp));
