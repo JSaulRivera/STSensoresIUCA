@@ -6,13 +6,12 @@ require([
   "esri/layers/FeatureLayer",
   "esri/layers/GraphicsLayer",
   "esri/layers/GroupLayer",
+  "esri/Graphic",
+  "esri/widgets/LayerList",
+  "esri/symbols/PointSymbol3D",
+  "esri/symbols/ObjectSymbol3DLayer",
 ], function (
-  Map,
-  SceneView,
-  SceneLayer,
-  FeatureLayer,
-  GraphicsLayer,
-  GroupLayer,
+  Map, SceneView, SceneLayer, FeatureLayer, GraphicsLayer, GroupLayer, Graphic, LayerList, PointSymbol3D, ObjectSymbol3DLayer
 ) {
   etiquetasLayer = new GraphicsLayer({
     title: "Información de sensores",
@@ -75,17 +74,6 @@ require([
 
   map.addMany([grupoIuca, glbLayer, glbVelavuLayer]);
   map.add(etiquetasLayer);
-});
-
-
-
-require([
-  "esri/views/SceneView",
-  "esri/Graphic",
-  "esri/widgets/LayerList",
-  "esri/symbols/PointSymbol3D",
-  "esri/symbols/ObjectSymbol3DLayer",
-], function (SceneView, Graphic, LayerList, PointSymbol3D, ObjectSymbol3DLayer) {
 
   layerList = new LayerList({ view });
   view.ui.add(layerList, "top-right");
@@ -126,76 +114,81 @@ require([
 
   setInterval(() => {
     actualizarDatosSensores();
+    actualizarSensoresVelavu();
 
   }, 30000);
 
   view.when(() => {
     actualizarDatosSensores();
+    actualizarSensoresVelavu();
+    
+    setTimeout(() => {
+    cargarListaSensores(filtro);
+  }, 2000);
+    // getDataApiVelavu('devices').then(devicesVelavu => {
+    //   sensoresVelavu = devicesVelavu.filter(itemVelavu => itemVelavu.location && itemVelavu.location.coordinates).map(itemVelavu => {
+    //     const namevelavu = itemVelavu.asset?.name === undefined
+    //       ? `${itemVelavu.model}_${itemVelavu.id}`
+    //       : `${itemVelavu.model}_${itemVelavu.id}_${itemVelavu.asset?.name}`;
+    //     return {
+    //       nombre: namevelavu,
+    //       categoria: "velavu",
+    //       data: itemVelavu
+    //     };
+    //   });
 
-    getDataApiVelavu('devices').then(devicesVelavu => {
-      sensoresVelavu = devicesVelavu.filter(itemVelavu => itemVelavu.location && itemVelavu.location.coordinates).map(itemVelavu => {
-        const namevelavu = itemVelavu.asset?.name === undefined
-          ? `${itemVelavu.model}_${itemVelavu.id}`
-          : `${itemVelavu.model}_${itemVelavu.id}_${itemVelavu.asset?.name}`;
-        return {
-          nombre: namevelavu,
-          categoria: "velavu",
-          data: itemVelavu
-        };
-      });
+    //   sensoresVelavu.forEach(sensor => {
+    //     const coords = sensor.data?.location?.coordinates;
+    //     const modelo = sensor.data.model;
+    //     const escala = 0.05;
+    //     const heading = 0;
+    //     const tilt = -45;
+    //     // console.log(sensor)
+    //     if (!coords || !modelo) return;
+    //     const [lon, lat] = coords;
+    //     const pt = {
+    //       type: "point",
+    //       latitude: lat,
+    //       longitude: lon,
+    //       z: 5
+    //     };
 
-      sensoresVelavu.forEach(sensor => {
-        const coords = sensor.data?.location?.coordinates;
-        const modelo = sensor.data.model;
-        const escala = 0.05;
-        const heading = 0;
-        const tilt = -45;
-        // console.log(sensor)
-        if (!coords || !modelo) return;
-        const [lon, lat] = coords;
-        const pt = {
-          type: "point",
-          latitude: lat,
-          longitude: lon,
-          z: 5
-        };
-        console.log(modelo)
-        const symbol = new PointSymbol3D({
-          symbolLayers: [
-            new ObjectSymbol3DLayer({
-              resource: { href: `/modelosSensores/${modelo}.glb` },
-              height: escala,
-              anchor: "relative",
-              heading: heading,
-              tilt: tilt
-            })
-          ]
-        });
-        const graphic = new Graphic({
-          geometry: pt,
-          symbol: symbol,
-          attributes: {
-            nombre: sensor.nombre,
-            tipo: "velavu",
-            ...sensor.data
-          }
-        });
+    //     const symbol = new PointSymbol3D({
+    //       symbolLayers: [
+    //         new ObjectSymbol3DLayer({
+    //           resource: { href: `/modelosSensores/${modelo}.glb` },
+    //           height: escala,
+    //           anchor: "relative",
+    //           heading: heading,
+    //           tilt: tilt
+    //         })
+    //       ]
+    //     });
+    //     const graphic = new Graphic({
+    //       geometry: pt,
+    //       symbol: symbol,
+    //       attributes: {
+    //         nombre: sensor.nombre,
+    //         tipo: "velavu",
+    //         ...sensor.data
+    //       }
+    //     });
 
-        glbVelavuLayer.add(graphic);
-      });
-      cargarListaSensores(); // Después de tener sensores externos
-      
-    });
+    //     glbVelavuLayer.add(graphic);
+    //   });
+    //   cargarListaSensores(); // Después de tener sensores externos
+
+    // });
 
 
     view.on("click", (event) => {
       view.hitTest(event).then((response) => {
         const result = response.results.find((res) =>
-          res.graphic.layer === sensores3d || res.graphic.layer === glbLayer
+          res.graphic.layer === sensores3d || res.graphic.layer === glbLayer || res.graphic.layer === glbVelavuLayer
         );
 
         if (!result) return;
-
+        console.log(result)
         const graphic = result.graphic;
         const atributos = { ...graphic.attributes };
 
@@ -213,10 +206,23 @@ require([
             if (!sensor) return;
 
             mostrarDatosSensor(sensor.attributes);
-            
+
           });
 
-        } else {
+        }else if (result.graphic.layer === glbVelavuLayer) {
+  const atributos = { ...graphic.attributes };
+
+  // Puedes usar directamente el nombre o el ID del sensor
+  if (!atributos || !atributos.id) return;
+
+  const atributosCodificados = encodeURIComponent(
+    JSON.stringify(atributos)
+  );
+   console.log(atributosCodificados)
+    window.open(`datos.html?atributos=${atributosCodificados}`);
+  
+}
+ else {
 
           mostrarDatosSensor(atributos);
         }
@@ -446,6 +452,91 @@ function actualizarDatosSensores() {
     });
 }
 
+function actualizarSensoresVelavu() {
+  getDataApiVelavu('devices').then(devicesVelavu => {
+    if (!devicesVelavu) return;
+
+    sensoresVelavu = devicesVelavu
+      .filter(itemVelavu => itemVelavu.location && itemVelavu.location.coordinates)
+      .map(itemVelavu => {
+        const namevelavu = itemVelavu.asset?.name === undefined
+          ? `${itemVelavu.model}_${itemVelavu.id}`
+          : `${itemVelavu.model}_${itemVelavu.id}_${itemVelavu.asset?.name}`;
+        return {
+          nombre: namevelavu,
+          categoria: "velavu",
+          data: itemVelavu
+        };
+      });
+
+    require([
+      "esri/Graphic",
+      "esri/symbols/PointSymbol3D",
+      "esri/symbols/ObjectSymbol3DLayer"
+    ], function (Graphic, PointSymbol3D, ObjectSymbol3DLayer) {
+
+      sensoresVelavu.forEach(sensor => {
+        const coords = sensor.data?.location?.coordinates;
+        const modelo = sensor.data.model;
+      
+        if (!coords || !modelo) return;
+
+        const [lon, lat] = coords;
+        const pt = {
+          type: "point",
+          latitude: lat,
+          longitude: lon,
+          z: 5
+        };
+
+        const idSensor = sensor.data.id;
+
+        if (mapaModelosVelavu[idSensor]) {
+          // Ya existe: actualizar posición y atributos
+          const graphic = mapaModelosVelavu[idSensor];
+          graphic.geometry = pt;
+          graphic.attributes = {
+            nombre: sensor.nombre,
+            tipo: "velavu",
+            ...sensor.data
+          };
+        } else {
+          // No existe: crear el modelo y guardarlo
+   
+          const symbol = new PointSymbol3D({
+            symbolLayers: [
+              new ObjectSymbol3DLayer({
+                resource: { href: `/modelosSensores/${modelo}.glb` },
+                height: 0.1,
+                anchor: "relative",
+                heading: 45,
+                tilt: 0
+              })
+            ]
+          });
+
+          const graphic = new Graphic({
+            geometry: pt,
+            symbol: symbol,
+            attributes: {
+              nombre: sensor.nombre,
+              tipo: "velavu",
+              ...sensor.data
+            }
+          });
+
+          glbVelavuLayer.add(graphic);
+          mapaModelosVelavu[idSensor] = graphic; // Guardar en el mapa
+        }
+      });
+
+      // cargarListaSensores(filtro);
+      actualizarEtiquetasSensores();
+    });
+  });
+}
+
+
 function actualizarEtiquetasSensores() {
   require(["esri/Graphic"], function (Graphic) {
     etiquetasLayer.removeAll();
@@ -516,7 +607,7 @@ function actualizarEtiquetasSensores() {
           let textoValores = "";
 
           for (const [key, value] of Object.entries(sensor.data)) {
-           // console.log(sensor)
+            // console.log(sensor)
             if (typeof value === "string" || typeof value === "number") {
               textoValores += `\n ${key}: ${value}`;
             }

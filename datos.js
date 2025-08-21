@@ -18,7 +18,7 @@ function initApp(FeatureLayer) {
   getInformation();
 }
 
-let atributosGlobales;
+
 
 function getInformation() {
   const params = new URLSearchParams(window.location.search);
@@ -26,21 +26,39 @@ function getInformation() {
 
   if (atributosString) {
     const atributos = JSON.parse(decodeURIComponent(atributosString));
-    atributosGlobales = atributos;
 
+    console.log(atributos)
+    if(atributos.tipo==="sensor")
+    {
     nombresensor = atributos.nombre;
     datosKey = atributos.datos;
     const tipo = atributos.tipo;
-    const modelo=atributos.modelo;
+    const modelo = atributos.modelo;
 
     document.getElementById('elemento').innerText = nombresensor;
     document.getElementById('nombre').innerText = nombresensor;
     document.getElementById('tipo').innerText = tipo;
     if (modelo) {
-  const modeloViewer = document.getElementById('modeloGLB');
-  modeloViewer.src = "/modelosSensores/"+modelo+".glb";
-}
+      const modeloViewer = document.getElementById('modeloGLB');
+      modeloViewer.src = "/modelosSensores/" + modelo + ".glb";
+    }
+  }
+  if(atributos.tipo==="velavu")
+    {
+      alert("velavu")
+    nombresensor = atributos.nombre;
+    datosKey = atributos.datos;
+    const tipo = atributos.tipo;
+    const modelo = atributos.model;
 
+    document.getElementById('elemento').innerText = nombresensor;
+    document.getElementById('nombre').innerText = nombresensor;
+    document.getElementById('tipo').innerText = tipo;
+    if (modelo) {
+      const modeloViewer = document.getElementById('modeloGLB');
+      modeloViewer.src = "/modelosSensores/" + modelo + ".glb";
+    }
+  }
   }
 
   const opcionSeleccionada = document.getElementById("opciones").value;
@@ -54,9 +72,6 @@ function getInformation() {
   setInterval(() => {
     const seleccion = document.getElementById("opciones").value;
     cargarDatosGrafica(seleccion, datosKey);
-    if (atributosGlobales) {
-      actualizarTabla(atributosGlobales, datosKey);
-    }
   }, 30000);
 }
 

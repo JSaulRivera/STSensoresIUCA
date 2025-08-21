@@ -10,6 +10,7 @@ let dashboardspersonas ="https://smart-twins.sigsa.info/portal/apps/dashboards/c
 let dashboardsvehiculos ="https://smart-twins.sigsa.info/portal/apps/dashboards/497495f3eb9f45308d0a2fca68dfa657"
 let view;
 let layerList;
+let mapaModelosVelavu = {};
 let sensorValues = new Map();
 let datosSensores, sensores3d, sceneLayer, glbLayer, etiquetasLayer, efectoAnilloLayer, devicesVelavu, listaSensores, glbVelavuLayer
 let apiVelavu = 'https://api.velavu.com/'
