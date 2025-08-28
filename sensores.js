@@ -29,6 +29,7 @@ require([
     map: map,
     center: [-98.413904, 20.063305],
     zoom: 20,
+    tilt:60,
   });
   sensores3d = new FeatureLayer({
     url: urlSensores3D,
@@ -115,71 +116,16 @@ require([
   setInterval(() => {
     actualizarDatosSensores();
     actualizarSensoresVelavu();
-
+    eventosVelavu();
   }, 30000);
 
   view.when(() => {
     actualizarDatosSensores();
     actualizarSensoresVelavu();
-    
+
     setTimeout(() => {
-    cargarListaSensores(filtro);
-  }, 2000);
-    // getDataApiVelavu('devices').then(devicesVelavu => {
-    //   sensoresVelavu = devicesVelavu.filter(itemVelavu => itemVelavu.location && itemVelavu.location.coordinates).map(itemVelavu => {
-    //     const namevelavu = itemVelavu.asset?.name === undefined
-    //       ? `${itemVelavu.model}_${itemVelavu.id}`
-    //       : `${itemVelavu.model}_${itemVelavu.id}_${itemVelavu.asset?.name}`;
-    //     return {
-    //       nombre: namevelavu,
-    //       categoria: "velavu",
-    //       data: itemVelavu
-    //     };
-    //   });
-
-    //   sensoresVelavu.forEach(sensor => {
-    //     const coords = sensor.data?.location?.coordinates;
-    //     const modelo = sensor.data.model;
-    //     const escala = 0.05;
-    //     const heading = 0;
-    //     const tilt = -45;
-    //     // console.log(sensor)
-    //     if (!coords || !modelo) return;
-    //     const [lon, lat] = coords;
-    //     const pt = {
-    //       type: "point",
-    //       latitude: lat,
-    //       longitude: lon,
-    //       z: 5
-    //     };
-
-    //     const symbol = new PointSymbol3D({
-    //       symbolLayers: [
-    //         new ObjectSymbol3DLayer({
-    //           resource: { href: `/modelosSensores/${modelo}.glb` },
-    //           height: escala,
-    //           anchor: "relative",
-    //           heading: heading,
-    //           tilt: tilt
-    //         })
-    //       ]
-    //     });
-    //     const graphic = new Graphic({
-    //       geometry: pt,
-    //       symbol: symbol,
-    //       attributes: {
-    //         nombre: sensor.nombre,
-    //         tipo: "velavu",
-    //         ...sensor.data
-    //       }
-    //     });
-
-    //     glbVelavuLayer.add(graphic);
-    //   });
-    //   cargarListaSensores(); // Después de tener sensores externos
-
-    // });
-
+      cargarListaSensores(filtro);
+    }, 2000);
 
     view.on("click", (event) => {
       view.hitTest(event).then((response) => {
@@ -209,20 +155,20 @@ require([
 
           });
 
-        }else if (result.graphic.layer === glbVelavuLayer) {
-  const atributos = { ...graphic.attributes };
+        } else if (result.graphic.layer === glbVelavuLayer) {
+          const atributos = { ...graphic.attributes };
 
-  // Puedes usar directamente el nombre o el ID del sensor
-  if (!atributos || !atributos.id) return;
+          // Puedes usar directamente el nombre o el ID del sensor
+          if (!atributos || !atributos.id) return;
 
-  const atributosCodificados = encodeURIComponent(
-    JSON.stringify(atributos)
-  );
-   console.log(atributosCodificados)
-    window.open(`datos.html?atributos=${atributosCodificados}`);
-  
-}
- else {
+          const atributosCodificados = encodeURIComponent(
+            JSON.stringify(atributos)
+          );
+          console.log(atributosCodificados)
+          window.open(`datos.html?atributos=${atributosCodificados}`);
+
+        }
+        else {
 
           mostrarDatosSensor(atributos);
         }
@@ -478,7 +424,7 @@ function actualizarSensoresVelavu() {
       sensoresVelavu.forEach(sensor => {
         const coords = sensor.data?.location?.coordinates;
         const modelo = sensor.data.model;
-      
+
         if (!coords || !modelo) return;
 
         const [lon, lat] = coords;
@@ -502,7 +448,7 @@ function actualizarSensoresVelavu() {
           };
         } else {
           // No existe: crear el modelo y guardarlo
-   
+
           const symbol = new PointSymbol3D({
             symbolLayers: [
               new ObjectSymbol3DLayer({
@@ -534,6 +480,123 @@ function actualizarSensoresVelavu() {
       actualizarEtiquetasSensores();
     });
   });
+}
+
+function eventosVelavu() {
+  const now = new Date();
+  let desde = new Date();
+  desde.setMinutes(now.getMinutes() - 2)
+  const year = desde.getUTCFullYear();
+  const month = String(desde.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(desde.getUTCDate()).padStart(2, '0');
+  const hours = String(desde.getUTCHours()).padStart(2, '0');
+  const minutes = String(desde.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(desde.getUTCSeconds()).padStart(2, '0');
+  const fecha = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z`;
+
+
+  getDataApiVelavu(`events/WEARABLE_ALERT?since=${fecha}`)
+    .then(eventosVelavu => {
+      if (!eventosVelavu || !Array.isArray(eventosVelavu)) return;
+
+      const ultimosPorDispositivo = {};
+      eventosVelavu.forEach(evento => {
+        const id = evento.device_id;
+        const actual = ultimosPorDispositivo[id];
+        if (!actual || new Date(evento.timestamp) > new Date(actual.timestamp)) {
+          ultimosPorDispositivo[id] = evento;
+        }
+      });
+      const resultado = Object.values(ultimosPorDispositivo).map(evento => ({
+        device_id: evento.device_id,
+        data: evento.data,
+        timestamp: evento.timestamp
+      }));
+
+      const mapaEventos = {};
+      resultado.forEach(evento => {
+        mapaEventos[evento.device_id] = evento;
+      });
+
+      const sensoresConEvento = sensoresVelavu
+        .filter(sensor => mapaEventos[sensor.data.id])  // Solo sensores con eventos
+        .map(sensor => {
+          const evento = mapaEventos[sensor.data.id];
+          return {
+            nombre: sensor.nombre,
+            categoria: sensor.categoria,
+            data: sensor.data,
+            evento: {
+              flags: evento.data.flags,
+              timestamp: evento.timestamp
+            }
+          };
+        });
+
+
+      require([
+        "esri/Graphic",
+        "esri/symbols/PointSymbol3D",
+        "esri/symbols/ObjectSymbol3DLayer"
+      ], function (Graphic, PointSymbol3D, ObjectSymbol3DLayer) {
+
+        if (graficosEventosVelavu.length) {
+          graficosEventosVelavu.forEach(g => view.graphics.remove(g));
+          graficosEventosVelavu = [];
+        }
+        sensoresConEvento.forEach(sensor => {
+          const coords = sensor.data?.location?.coordinates;
+          const modelo = sensor.data.model;
+          const evento = sensor.evento.flags
+
+          if (!coords || !modelo || evento == 0) return;
+          console.log('Datos:', sensor)
+          const [lon, lat] = coords;
+          const pt = {
+            type: "point",
+            latitude: lat,
+            longitude: lon,
+            z: 5.5
+          };
+
+          const idSensor = sensor.data.id;
+if (graficosEventosVelavu[idSensor]) {
+          // Ya existe: actualizar posición y atributos
+          const graphic = graficosEventosVelavu[idSensor];
+          graphic.geometry = pt;
+          
+        } else {
+          const symbol = new PointSymbol3D({
+            symbolLayers: [
+              new ObjectSymbol3DLayer({
+                resource: { href: `/modelosSensores/alerta.glb` },
+                height: 2,
+                anchor: "relative",
+                heading: 45,
+                tilt: 0
+              })
+            ]
+          });
+
+          const graphic = new Graphic({
+            geometry: pt,
+            symbol: symbol
+          });
+
+          view.graphics.add(graphic); // Agrega al mapa
+          graficosEventosVelavu.push(graphic); // Guarda para eliminarlos después
+        }
+        });
+
+
+      });
+
+    })
+    .catch(error => {
+      console.error('Error al consultar la API:', error);
+    });
+
+
 }
 
 
@@ -571,7 +634,7 @@ function actualizarEtiquetasSensores() {
 
           const fecha = formatearFecha(sensorValues.get("fecha"));
           //const texto = `${nombre}${textoValores}\n Fecha: ${fecha}`;
-          const texto = `${nombre}${textoValores}\n`
+          const texto = `${nombre}`
 
           const etiqueta = new Graphic({
             geometry: pt,
@@ -592,7 +655,7 @@ function actualizarEtiquetasSensores() {
           etiquetasArcgis.push(etiqueta);
         });
 
-        // Ahora procesar etiquetas de Velavu
+
         sensoresVelavu.forEach((sensor) => {
           const coords = sensor.data?.location?.coordinates;
           if (!coords) return;

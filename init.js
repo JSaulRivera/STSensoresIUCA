@@ -11,8 +11,9 @@ let dashboardsvehiculos ="https://smart-twins.sigsa.info/portal/apps/dashboards/
 let view;
 let layerList;
 let mapaModelosVelavu = {};
+let graficosEventosVelavu = [];
 let sensorValues = new Map();
-let datosSensores, sensores3d, sceneLayer, glbLayer, etiquetasLayer, efectoAnilloLayer, devicesVelavu, listaSensores, glbVelavuLayer
+let datosSensores, sensores3d, sceneLayer, glbLayer, etiquetasLayer, efectoAnilloLayer, devicesVelavu, listaSensores, glbVelavuLayer,eventosLayer
 let apiVelavu = 'https://api.velavu.com/'
 let headers = {
     'Authorization': 'Bearer tkym24EmEKZz6a7F3BCgiwkyG21OQPH233QMyE1TNqKK',
