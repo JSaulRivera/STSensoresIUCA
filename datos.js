@@ -238,7 +238,7 @@ function cargarDatosGrafica(opcionSeleccionada, datosKey, atributos) {
           window._graphicsLayer = new GraphicsLayer();
 
           const map = new Map({
-            basemap: "dark-gray-vector",
+            basemap: "hybrid",
             layers: [window._graphicsLayer]
           });
 

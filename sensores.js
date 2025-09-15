@@ -29,7 +29,7 @@ require([
     map: map,
     center: [-98.413904, 20.063305],
     zoom: 20,
-    tilt:60,
+    tilt: 60,
   });
   sensores3d = new FeatureLayer({
     url: urlSensores3D,
@@ -57,7 +57,7 @@ require([
   const grupoIuca = new GroupLayer({
     title: "IUCA",
     listMode: "show",
-    opacity: 0.2,
+    opacity: 0.6,
     visibilityMode: "independent",
     layers: [],
   });
@@ -73,8 +73,8 @@ require([
     grupoIuca.add(capaIuca);
   })
 
-  map.addMany([grupoIuca, glbLayer, glbVelavuLayer]);
-  map.add(etiquetasLayer);
+map.addMany([grupoIuca,glbLayer, glbVelavuLayer]);
+map.add(etiquetasLayer);
 
   layerList = new LayerList({ view });
   view.ui.add(layerList, "top-right");
@@ -401,15 +401,18 @@ function actualizarDatosSensores() {
 function actualizarSensoresVelavu() {
   getDataApiVelavu('devices').then(devicesVelavu => {
     if (!devicesVelavu) return;
-
     sensoresVelavu = devicesVelavu
       .filter(itemVelavu => itemVelavu.location && itemVelavu.location.coordinates)
       .map(itemVelavu => {
         const namevelavu = itemVelavu.asset?.name === undefined
           ? `${itemVelavu.model}_${itemVelavu.id}`
           : `${itemVelavu.model}_${itemVelavu.id}_${itemVelavu.asset?.name}`;
+          const etiqueta = itemVelavu.asset?.name === undefined
+          ? `${itemVelavu.model}_${itemVelavu.id}`
+          : `${itemVelavu.asset?.name}`
         return {
           nombre: namevelavu,
+          etiqueta:etiqueta,
           categoria: "velavu",
           data: itemVelavu
         };
@@ -421,9 +424,12 @@ function actualizarSensoresVelavu() {
       "esri/symbols/ObjectSymbol3DLayer"
     ], function (Graphic, PointSymbol3D, ObjectSymbol3DLayer) {
 
+
       sensoresVelavu.forEach(sensor => {
         const coords = sensor.data?.location?.coordinates;
         const modelo = sensor.data.model;
+        const locationFloors = sensor.data?.location?.floor_id
+        const pisoEncontrado = pisos.find(piso => piso.id === locationFloors);
 
         if (!coords || !modelo) return;
 
@@ -432,7 +438,7 @@ function actualizarSensoresVelavu() {
           type: "point",
           latitude: lat,
           longitude: lon,
-          z: 5
+          z: pisoEncontrado.altura
         };
 
         const idSensor = sensor.data.id;
@@ -442,6 +448,7 @@ function actualizarSensoresVelavu() {
           const graphic = mapaModelosVelavu[idSensor];
           graphic.geometry = pt;
           graphic.attributes = {
+            piso: pisoEncontrado,
             nombre: sensor.nombre,
             tipo: "velavu",
             ...sensor.data
@@ -465,6 +472,7 @@ function actualizarSensoresVelavu() {
             geometry: pt,
             symbol: symbol,
             attributes: {
+              piso: pisoEncontrado,
               nombre: sensor.nombre,
               tipo: "velavu",
               ...sensor.data
@@ -475,8 +483,6 @@ function actualizarSensoresVelavu() {
           mapaModelosVelavu[idSensor] = graphic; // Guardar en el mapa
         }
       });
-
-      // cargarListaSensores(filtro);
       actualizarEtiquetasSensores();
     });
   });
@@ -560,32 +566,32 @@ function eventosVelavu() {
           };
 
           const idSensor = sensor.data.id;
-if (graficosEventosVelavu[idSensor]) {
-          // Ya existe: actualizar posición y atributos
-          const graphic = graficosEventosVelavu[idSensor];
-          graphic.geometry = pt;
-          
-        } else {
-          const symbol = new PointSymbol3D({
-            symbolLayers: [
-              new ObjectSymbol3DLayer({
-                resource: { href: `/modelosSensores/alerta.glb` },
-                height: 2,
-                anchor: "relative",
-                heading: 45,
-                tilt: 0
-              })
-            ]
-          });
+          if (graficosEventosVelavu[idSensor]) {
+            // Ya existe: actualizar posición y atributos
+            const graphic = graficosEventosVelavu[idSensor];
+            graphic.geometry = pt;
 
-          const graphic = new Graphic({
-            geometry: pt,
-            symbol: symbol
-          });
+          } else {
+            const symbol = new PointSymbol3D({
+              symbolLayers: [
+                new ObjectSymbol3DLayer({
+                  resource: { href: `/modelosSensores/alerta.glb` },
+                  height: 2,
+                  anchor: "relative",
+                  heading: 45,
+                  tilt: 0
+                })
+              ]
+            });
 
-          view.graphics.add(graphic); // Agrega al mapa
-          graficosEventosVelavu.push(graphic); // Guarda para eliminarlos después
-        }
+            const graphic = new Graphic({
+              geometry: pt,
+              symbol: symbol
+            });
+
+            view.graphics.add(graphic); // Agrega al mapa
+            graficosEventosVelavu.push(graphic); // Guarda para eliminarlos después
+          }
         });
 
 
@@ -655,22 +661,41 @@ function actualizarEtiquetasSensores() {
           etiquetasArcgis.push(etiqueta);
         });
 
-
+   // velavu
         sensoresVelavu.forEach((sensor) => {
+          console.log("sensor",sensor)
           const coords = sensor.data?.location?.coordinates;
+          const locationFloors = sensor.data?.location?.floor_id;
+          const locationGeofences = sensor.data.geofence_ids;
+          const pisoEncontrado = pisos.find(piso => piso.id === locationFloors);
+          if(locationGeofences){
+          areaEncontrado = areas.find(area => area.id === locationGeofences[0]);
+          ubicacionArea=areaEncontrado.name
+          }else{
+            ubicacionArea="area no espesifica"
+          }
+
+          
+
+
+  
+        //  const zona= areaEncontrado.name
+
+          // console.log(zona)
+          
           if (!coords) return;
 
           const pt = {
             type: "point",
             latitude: coords[1],
             longitude: coords[0],
-            z: 5.2
+            z: pisoEncontrado.altura+0.3
           };
 
           let textoValores = "";
 
           for (const [key, value] of Object.entries(sensor.data)) {
-            // console.log(sensor)
+            
             if (typeof value === "string" || typeof value === "number") {
               textoValores += `\n ${key}: ${value}`;
             }
@@ -678,7 +703,7 @@ function actualizarEtiquetasSensores() {
 
           const fecha = sensor.data?.updatedAt || "";
           //const texto = `${sensor.nombre}${textoValores}\n Fecha: ${fecha}`;
-          const texto = `${sensor.nombre}`;
+          const texto = `${sensor.etiqueta}\n Piso: ${pisoEncontrado.name}\n Area: ${ubicacionArea}`;
 
           const etiqueta = new Graphic({
             geometry: pt,
