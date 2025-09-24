@@ -4,7 +4,7 @@ let etiquetasVelavu = [];
 let etiquetasArcgis = [];
 let filtro = "todos";
 
-let urlSensores3D = "https://smart-twins.sigsa.info/server/rest/services/Hosted/UbicacionSensores_WSL1/FeatureServer/0"
+let urlSensores3D = "https://smart-twins.sigsa.info/server/rest/services/Hosted/UbicacionSensores_WSL1/FeatureServer/1"
 let urlSceneLayer = "https://smart-twins.sigsa.info/server/rest/services/Hosted/UbicacionSensores_WSL1/SceneServer"
 let urlDatosSensores = "https://smart-twins.sigsa.info/server/rest/services/Hosted/DatosSensores_WFL1/FeatureServer"
 let dashboardspersonas ="https://smart-twins.sigsa.info/portal/apps/dashboards/c549225088234bfda2955f56f9677ad0"

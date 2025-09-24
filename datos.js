@@ -59,7 +59,7 @@ function getInformation() {
 
     if (atributos.tipo === "sensor") {
       nombresensor = atributos.nombre;
-      datosKey = atributos.datos;
+      datosKey = atributos.datos.toLowerCase();
       tipo = atributos.tipo;
       const modelo = atributos.modelo;
       document.getElementById("mapa").style.display = "none";
@@ -84,7 +84,7 @@ function getInformation() {
       datosKey = atributos?.environment === undefined
         ? `Sin información`
         : `temperature_c,humidity`;
-
+      console.log(datosKey)
       document.getElementById('elemento').innerText = nombresensor;
       document.getElementById('nombre').innerText = nombresensor;
       document.getElementById('valorRegistrado').innerText = datos;
@@ -167,7 +167,18 @@ function cargarDatosGrafica(opcionSeleccionada, datosKey, atributos) {
       const ultimoRegistro = registros[registros.length - 1].attributes;
       let textoValores = campos.map(c => `${c}: ${ultimoRegistro[c] ?? "N/A"}`).join("\n");
       document.getElementById('valorRegistrado').innerText = textoValores;
+      document.getElementById('estado').innerText="Sensor ambiental"
       document.getElementById('fechaRegistro').innerText = new Date(ultimoRegistro.fecha).toLocaleString();
+      const fechaRegistro = new Date(ultimoRegistro.fecha);
+      const ahora = new Date();
+      const diferenciaMs = ahora - fechaRegistro;
+      const lt = diferenciaMs <= 5 * 60 * 1000 && diferenciaMs >= 0;
+      if (lt) {
+        document.getElementById('status').innerText = "online"
+      } else {
+        document.getElementById('status').innerText = "offline"
+      }
+      
     });
 
   } else if (atributos.tipo == "velavu") {
@@ -208,7 +219,7 @@ function cargarDatosGrafica(opcionSeleccionada, datosKey, atributos) {
     getDataApiVelavu(`events/LOCATION/device/${atributos.id}?since=${fecha}`).then(locationVelavu => {
       if (!locationVelavu || locationVelavu.length === 0) {
         document.getElementById("mapa").style.display = "none";
-        
+
         return;
       }
 

@@ -134,13 +134,14 @@ map.add(etiquetasLayer);
         );
 
         if (!result) return;
-        console.log(result)
         const graphic = result.graphic;
         const atributos = { ...graphic.attributes };
-
+        
 
         if (result.graphic.layer === glbLayer) {
+          
           const nombre = atributos.nombre;
+          
           if (!nombre) return;
 
           sensores3d.queryFeatures({
@@ -164,7 +165,7 @@ map.add(etiquetasLayer);
           const atributosCodificados = encodeURIComponent(
             JSON.stringify(atributos)
           );
-          console.log(atributosCodificados)
+          // console.log(atributosCodificados)
           window.open(`datos.html?atributos=${atributosCodificados}`);
 
         }
@@ -359,6 +360,7 @@ function mostrarDatosSensor(atributos) {
       if (registro) {
         atributos.fecha = registro.fecha;
         campos.forEach((campo) => {
+          campo=campo.toLowerCase()
           atributos[campo] = registro[campo];
         });
       }
@@ -556,13 +558,13 @@ function eventosVelavu() {
           const evento = sensor.evento.flags
 
           if (!coords || !modelo || evento == 0) return;
-          console.log('Datos:', sensor)
+          // console.log('Datos:', sensor)
           const [lon, lat] = coords;
           const pt = {
             type: "point",
             latitude: lat,
             longitude: lon,
-            z: 5.5
+            z: 11
           };
 
           const idSensor = sensor.data.id;
@@ -576,7 +578,7 @@ function eventosVelavu() {
               symbolLayers: [
                 new ObjectSymbol3DLayer({
                   resource: { href: `/modelosSensores/alerta.glb` },
-                  height: 2,
+                  height: 10,
                   anchor: "relative",
                   heading: 45,
                   tilt: 0
@@ -663,7 +665,7 @@ function actualizarEtiquetasSensores() {
 
    // velavu
         sensoresVelavu.forEach((sensor) => {
-          console.log("sensor",sensor)
+          // console.log("sensor",sensor)
           const coords = sensor.data?.location?.coordinates;
           const locationFloors = sensor.data?.location?.floor_id;
           const locationGeofences = sensor.data.geofence_ids;
@@ -675,13 +677,6 @@ function actualizarEtiquetasSensores() {
             ubicacionArea="area no espesifica"
           }
 
-          
-
-
-  
-        //  const zona= areaEncontrado.name
-
-          // console.log(zona)
           
           if (!coords) return;
 
