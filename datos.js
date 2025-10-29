@@ -66,6 +66,13 @@ function getInformation() {
       document.getElementById('elemento').innerText = nombresensor;
       document.getElementById('nombre').innerText = nombresensor;
       document.getElementById('tipo').innerText = tipo;
+      const imgContainer = document.getElementById('img');
+      let rutaimagen
+if(nombresensor=='Temperatura y humedad(v)'){rutaimagen="/imagenes/3.jpg"}
+if(nombresensor=='Detector de gas(ch4)'){rutaimagen="/imagenes/1.jpg"}       
+  imgContainer.innerHTML = `<img src="${rutaimagen}" alt="Ubicación del sensor" 
+                             style="width:100%; max-width:100px; border-radius:8px; box-shadow:0 0 10px #00eaff55;">`;
+
       if (modelo) {
         const modeloViewer = document.getElementById('modeloGLB');
         modeloViewer.src = "/modelosSensores/" + modelo + ".glb";
@@ -92,6 +99,12 @@ function getInformation() {
       document.getElementById('tipo').innerText = tipo;
       document.getElementById('status').innerText = estado ? "online" : "offline";
       document.getElementById('modelo').innerText = modelo;
+      const imgContainer = document.getElementById('img');
+      let rutaimagen=''
+if(nombresensor=='Minew MBM01_lv3em'){rutaimagen="/imagenes/4.jpg"}
+       
+  imgContainer.innerHTML = `<img src="${rutaimagen}" alt="Ubicación del sensor" 
+                             style="width:100%; max-width:100px; border-radius:8px; box-shadow:0 0 10px #00eaff55;">`;
 
       if (modelo) {
         const modeloViewer = document.getElementById('modeloGLB');
@@ -167,7 +180,7 @@ function cargarDatosGrafica(opcionSeleccionada, datosKey, atributos) {
       const ultimoRegistro = registros[registros.length - 1].attributes;
       let textoValores = campos.map(c => `${c}: ${ultimoRegistro[c] ?? "N/A"}`).join("\n");
       document.getElementById('valorRegistrado').innerText = textoValores;
-      document.getElementById('estado').innerText="Sensor ambiental"
+      // document.getElementById('estado').innerText="Sensor ambiental"
       document.getElementById('fechaRegistro').innerText = new Date(ultimoRegistro.fecha).toLocaleString();
       const fechaRegistro = new Date(ultimoRegistro.fecha);
       const ahora = new Date();

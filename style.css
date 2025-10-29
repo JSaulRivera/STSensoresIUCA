@@ -25,7 +25,7 @@ body, html {
 
 #sidebar h2 {
   font-size: 20px;
-  color: #00ffff;
+  color: #fff;
   border-bottom: 2px solid #00ffff66;
   padding-bottom: 10px;
   margin-bottom: 10px;
@@ -33,13 +33,28 @@ body, html {
 }
 
 #sensorList {
-  width: 100%;
+  /* width: 100%;
   height: 100%;
   background-color: #001d2e;
   border: 1px solid #00ffff55;
   color: #00ffff;
   font-size: 14px;
-  padding: 5px;
+  padding: 5px; */
+  --color-primary: #171e37;
+ --color-secondary: #2ebccc;
+ --color-selected: #7af2ff;
+ --color-background-title: #171e37;
+ --color-background-title-2: #171e37;
+ --color-background: #171e37;
+ --color-text: #ffffff;
+ --color-shadow:#000000;
+ --color-border: #00d9ff;
+ --color-hover: #86edff;
+ --color-selected:#d6e0e1;
+ --color-button-background:#2385c2;
+ --scroll-button-color: #2a6194;
+ --scroll-button-color-hover: #204c76;
+ --scroll-button-color-active:#14304a;
   /* overflow: hidden; */
 }
 
@@ -70,7 +85,7 @@ body, html {
 .sensor-item {
   background-color: #001d2e;
   border: 1px solid #00ffff55;
-  color: #00ffff;
+  color: #fff;
   padding: 10px;
   border-radius: 10px;
   cursor: pointer;
@@ -83,11 +98,26 @@ body, html {
 .sensor-item:focus {
   background-color: #00ffff22;
   color: #ffffff;
-  box-shadow: 0 0 10px #00ffff88;
+  box-shadow: 0 0 10px #fff;
 }
 .sensor-item.selected {
   background-color: #00ffff55;
   color: #001f33;
   font-weight: bold;
   box-shadow: 0 0 12px #00ffffcc;
+}
+
+@font-face {
+    font-family: 'Avenir Next';
+    src: "/Avenir-next-lt-pro/AvenirNextLTPro-Regular.otf";
+    /* File to be stored at your site */
+}
+
+.etiqueta {
+  position: absolute;
+  color: #00ff2a;
+  font-family: "Segoe UI", sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  text-shadow: 0 0 2px #001f33; /* esto simula el halo */
 }

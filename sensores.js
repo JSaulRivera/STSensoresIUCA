@@ -207,9 +207,10 @@ function cargarListaSensores(filtro = "todos") {
       .then(featureSet => {
         featureSet.features.forEach(feature => {
           const nombre = feature.attributes.nombre;
+          const nomenclatura = feature.attributes.nomenclatura;
           if (!nombresUnicos.has(nombre)) {
             nombresUnicos.add(nombre);
-            agregarSensorALista(nombre, "ambientales");
+            agregarSensorALista(nombre, "ambientales",nomenclatura);
           }
         });
       });
@@ -219,16 +220,16 @@ function cargarListaSensores(filtro = "todos") {
     sensoresVelavu.forEach(sensor => {
       if (!nombresUnicos.has(sensor.nombre)) {
         nombresUnicos.add(sensor.nombre);
-        agregarSensorALista(sensor.nombre, "velavu");
+        agregarSensorALista(sensor.nombre, "velavu",sensor.nomenclatura);
       }
     });
   }
 }
 
-function agregarSensorALista(nombre, tipo) {
+function agregarSensorALista(nombre, tipo,nomenclatura) {
   const div = document.createElement("div");
   div.className = "sensor-item";
-  div.textContent = nombre;
+  div.textContent = nomenclatura;
   div.dataset.nombre = nombre;
   div.dataset.tipo = tipo;
 
@@ -268,7 +269,7 @@ function hacerZoomASensor(nombre, tipo) {
             heading: feature.attributes.headingcamara,
           });
 
-          animarAnillo(punto);
+          // animarAnillo(punto);
         }
       })
       .catch(console.error);
@@ -285,7 +286,7 @@ function hacerZoomASensor(nombre, tipo) {
     }).catch(error => {
       console.error("Error al hacer zoom:", error);
     });
-    animarAnillo(punto);
+    // animarAnillo(punto);
   }
 
 
@@ -406,15 +407,29 @@ function actualizarSensoresVelavu() {
     sensoresVelavu = devicesVelavu
       .filter(itemVelavu => itemVelavu.location && itemVelavu.location.coordinates)
       .map(itemVelavu => {
+        let modsen
+          if(itemVelavu.model=='Vesta'){modsen='SVV'}
+          if(itemVelavu.model=='Pavo'){modsen='SVP'}
+          if(itemVelavu.model=='Arda'){modsen='SVA'}
+          if(itemVelavu.model=='Minew MBM01'){modsen='SVM'}
+          if(itemVelavu.model=='Minew B10'){modsen='SVB'}
+          
         const namevelavu = itemVelavu.asset?.name === undefined
           ? `${itemVelavu.model}_${itemVelavu.id}`
           : `${itemVelavu.model}_${itemVelavu.id}_${itemVelavu.asset?.name}`;
+
           const etiqueta = itemVelavu.asset?.name === undefined
           ? `${itemVelavu.model}_${itemVelavu.id}`
+          : `${itemVelavu.asset?.name}`;
+          const nomenclatura = itemVelavu.asset?.name === undefined
+          ? `${modsen}${itemVelavu.id}`
           : `${itemVelavu.asset?.name}`
+          
+        
         return {
           nombre: namevelavu,
           etiqueta:etiqueta,
+          nomenclatura:nomenclatura,
           categoria: "velavu",
           data: itemVelavu
         };
@@ -629,6 +644,7 @@ function actualizarEtiquetasSensores() {
           const pt = feature.geometry;
           pt.z += 0.2;
           const nombre = feature.attributes.nombre;
+          const nomenclatura = feature.attributes.nomenclatura
           const datosKey = feature.attributes.datos;
           if (!datosKey) return;
 
@@ -642,18 +658,17 @@ function actualizarEtiquetasSensores() {
 
           const fecha = formatearFecha(sensorValues.get("fecha"));
           //const texto = `${nombre}${textoValores}\n Fecha: ${fecha}`;
-          const texto = `${nombre}`
+          const texto = `${nomenclatura}`
 
           const etiqueta = new Graphic({
             geometry: pt,
             symbol: {
               type: "text",
-              color: "#00ffff",
+              color: "#fff",
               text: texto,
               font: {
-                size: 9,
-                family: "Segoe UI",
-                weight: "bold",
+                family: "Avenir Next",
+                src: "/Avenir-next-lt-pro/AvenirNextLTPro-Regular.otf",
               },
               haloColor: "#001f33",
               haloSize: "2px",
@@ -698,20 +713,21 @@ function actualizarEtiquetasSensores() {
 
           const fecha = sensor.data?.updatedAt || "";
           //const texto = `${sensor.nombre}${textoValores}\n Fecha: ${fecha}`;
-          const texto = `${sensor.etiqueta}\n Piso: ${pisoEncontrado.name}\n Area: ${ubicacionArea}`;
+          //const texto = `${sensor.etiqueta}\n Piso: ${pisoEncontrado.name}\n Area: ${ubicacionArea}`;
+          const texto = `${sensor.nomenclatura}`;
 
           const etiqueta = new Graphic({
             geometry: pt,
             symbol: {
               type: "text",
-              color: "#00ffff",
+              color: "#ffffff",
               text: texto,
               font: {
-                size: 9,
-                family: "Segoe UI",
-                weight: "bold",
+                
+                family: "Avenir Next",
+                src: "/Avenir-next-lt-pro/AvenirNextLTPro-Regular.otf",
               },
-              haloColor: "#001f33",
+          haloColor: "#001f33",
               haloSize: "2px",
             },
           });
