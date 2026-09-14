@@ -3,7 +3,11 @@ let sensoresVelavu = []
 let etiquetasVelavu = [];
 let etiquetasArcgis = [];
 let filtro = "todos";
+const BASE_PATH = window.location.port === "4441"
+    ? ""
+    : "/STSensores";
 
+    
 let urlSensores3D = "https://smart-twins.sigsa.info/server/rest/services/Hosted/UbicacionSensores_WSL1/FeatureServer/1"
 let urlSceneLayer = "https://smart-twins.sigsa.info/server/rest/services/Hosted/UbicacionSensores_WSL1/SceneServer"
 let urlDatosSensores = "https://smart-twins.sigsa.info/server/rest/services/Hosted/DatosSensores_WFL1/FeatureServer"

@@ -93,7 +93,7 @@ map.add(etiquetasLayer);
       const symbol = new PointSymbol3D({
         symbolLayers: [
           new ObjectSymbol3DLayer({
-            resource: { href: `/modelosSensores/${feature.attributes.modelo}.glb` },
+            resource: { href: `${BASE_PATH}/modelosSensores/${feature.attributes.modelo}.glb` },
             height: feature.attributes.escala,
             anchor: "relative",
             heading: feature.attributes.inclinacion,
@@ -476,7 +476,7 @@ function actualizarSensoresVelavu() {
           const symbol = new PointSymbol3D({
             symbolLayers: [
               new ObjectSymbol3DLayer({
-                resource: { href: `/modelosSensores/${modelo}.glb` },
+                resource: { href: `${BASE_PATH}/modelosSensores/${modelo}.glb` },
                 height: 0.1,
                 anchor: "relative",
                 heading: 45,
@@ -592,7 +592,7 @@ function eventosVelavu() {
             const symbol = new PointSymbol3D({
               symbolLayers: [
                 new ObjectSymbol3DLayer({
-                  resource: { href: `/modelosSensores/alerta.glb` },
+                  resource: { href: `${BASE_PATH}/modelosSensores/alerta.glb` },
                   height: 10,
                   anchor: "relative",
                   heading: 45,

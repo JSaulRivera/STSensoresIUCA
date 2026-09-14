@@ -75,7 +75,7 @@ if(nombresensor=='Detector de gas(ch4)'){rutaimagen="/imagenes/1.jpg"}
 
       if (modelo) {
         const modeloViewer = document.getElementById('modeloGLB');
-        modeloViewer.src = "/modelosSensores/" + modelo + ".glb";
+        modeloViewer.src = `${BASE_PATH}/modelosSensores/${modelo}.glb`;
       }
     }
 
@@ -108,7 +108,7 @@ if(nombresensor=='Minew MBM01_lv3em'){rutaimagen="/imagenes/4.jpg"}
 
       if (modelo) {
         const modeloViewer = document.getElementById('modeloGLB');
-        modeloViewer.src = "/modelosSensores/" + modelo + ".glb";
+        modeloViewer.src = `${BASE_PATH}/modelosSensores/${modelo}.glb`;
       }
     }
   }
